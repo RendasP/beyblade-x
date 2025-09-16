@@ -56,6 +56,18 @@
     width: 100px; cursor: pointer; transition: transform 0.15s ease;
   }
   .btn:active { transform: scale(1.2); }
+  /* Ecrã inicial */
+  #nameScreen {
+    position:absolute;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.9);display:flex;
+    flex-direction:column;justify-content:center;align-items:center;
+    z-index:10;color:white;
+  }
+  #nameScreen input {
+    margin:5px;padding:8px;font-size:16px;border-radius:6px;border:none;
+    text-align:center;
+  }
+  #nameScreen h2 { margin-bottom:10px; }
 </style>
 </head>
 <body>
@@ -79,15 +91,23 @@
 
   <div class="points" id="pointsControls">
     <div class="p1-buttons">
-      <img src="spin.jpg" class="btn" data-player="1" data-points="1">
-      <img src="over.jpg" class="btn" data-player="1" data-points="2">
-      <img src="extreme.jpg" class="btn" data-player="1" data-points="3">
+      <img src="spin.png" class="btn" data-player="1" data-points="1">
+      <img src="over.png" class="btn" data-player="1" data-points="2">
+      <img src="extreme.png" class="btn" data-player="1" data-points="3">
     </div>
     <div class="p2-buttons">
-      <img src="spin2.jpg" class="btn" data-player="2" data-points="1">
-      <img src="over2.jpg" class="btn" data-player="2" data-points="2">
-      <img src="extreme2.jpg" class="btn" data-player="2" data-points="3">
+      <img src="spin2.png" class="btn" data-player="2" data-points="1">
+      <img src="over2.png" class="btn" data-player="2" data-points="2">
+      <img src="extreme2.png" class="btn" data-player="2" data-points="3">
     </div>
+  </div>
+
+  <!-- Ecrã inicial -->
+  <div id="nameScreen">
+    <h2>Introduz os nomes dos jogadores</h2>
+    <input id="nameP1" placeholder="Player 1">
+    <input id="nameP2" placeholder="Player 2">
+    <button id="startNamesBtn">Confirmar</button>
   </div>
 </div>
 
@@ -111,19 +131,20 @@ const ripSound=document.getElementById('ripSound');
 const clashSound=document.getElementById('clashSound');
 const openingMusic=document.getElementById('openingMusic');
 
+// Ecrã inicial
+const nameScreen=document.getElementById("nameScreen");
+const nameP1=document.getElementById("nameP1");
+const nameP2=document.getElementById("nameP2");
+const startNamesBtn=document.getElementById("startNamesBtn");
+
 let p1=0,p2=0;
 let isCounting=false;
-let countdown=["READY","SET","3","2","1","LET IT RIP!"];
+let countdown=["READY","3","2","1","GO!"];
 let cIndex=0,cStart=0,delay=1.1;
 let player1Name="Player 1";
 let player2Name="Player 2";
 let attackGif=null;
 
-function askNames(){
-  player1Name = prompt("Nome do Jogador 1:", player1Name || "Player 1");
-  player2Name = prompt("Nome do Jogador 2:", player2Name || "Player 2");
-  updateScores();
-}
 function updateScores(){
   scoreP1El.textContent=`${player1Name}: ${p1}`;
   scoreP2El.textContent=`${player2Name}: ${p2}`;
@@ -172,7 +193,8 @@ resetBtn.onclick=()=>{
   openingMusic.pause();
   openingMusic.currentTime=0;
   removeAttackGif();
-  askNames();
+  nameScreen.style.display="flex";
+  nameScreen.style.pointerEvents="auto"; // reativa interação
 }
 muteBtn.onclick=()=>{
   if(openingMusic.muted){ openingMusic.muted=false; muteBtn.textContent="Mute"; }
@@ -190,6 +212,15 @@ pointsControls.addEventListener("click",e=>{
     removeAttackGif();
   }
 });
+
+// Ecrã inicial confirma nomes
+startNamesBtn.onclick=()=>{
+  player1Name = nameP1.value || "Player 1";
+  player2Name = nameP2.value || "Player 2";
+  updateScores();
+  nameScreen.style.display="none";
+  nameScreen.style.pointerEvents="none"; // garante que não bloqueia
+};
 
 function frame(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -211,7 +242,6 @@ function frame(){
   }
   requestAnimationFrame(frame);
 }
-askNames();
 updateScores();
 frame();
 </script>
