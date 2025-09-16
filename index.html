@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Beyblade X</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+<style>
+  body, html {
+    margin: 0; padding: 0; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+    background: url("bbbackgound.jpg") no-repeat center center;
+    background-size: cover;
+    font-family: 'Orbitron', Arial, sans-serif;
+  }
+  .wrap {
+    aspect-ratio: 4 / 3; width: 90vw; max-width: 960px;
+    background: rgba(0,0,0,0.65);
+    border-radius: 16px; padding: 16px; position: relative;
+  }
+  h1 {
+    text-align: center; margin: 10px 0;
+    font-size: 32px; text-transform: uppercase;
+    color: rgb(64,236,1); text-shadow: 0 0 8px #222;
+  }
+  .scores {
+    display: flex; justify-content: space-between; gap: 10px; margin-bottom: 12px;
+  }
+  .scoreBox {
+    flex: 1; text-align: center; font-size: 20px; font-weight: bold;
+    padding: 10px; border-radius: 12px; background: rgba(0,0,0,0.6); color: #fff;
+  }
+  #canvasWrap {
+    background: #111; border-radius: 16px; padding: 10px;
+    position: relative; margin-bottom: 12px; height: 70%;
+  }
+  canvas {
+    display: block; margin: 0 auto; border-radius: 12px;
+  }
+  .controls {
+    display: flex; gap: 10px; justify-content: center; margin-top: 10px;
+  }
+  button {
+    cursor: pointer; font-family: 'Orbitron', Arial, sans-serif;
+    text-transform: uppercase; border: none;
+    padding: 10px 14px; border-radius: 10px; font-size: 14px; color: white;
+    transition: 0.2s; background: linear-gradient(180deg,#444,#222);
+    box-shadow: 0 0 8px #888 inset;
+  }
+  button:hover { transform: scale(1.05); }
+  .points {
+    display: none; justify-content: space-between; margin-top: 20px;
+  }
+  .p1-buttons, .p2-buttons { display: flex; flex-direction: column; gap: 10px; }
+  .btn {
+    width: 100px; cursor: pointer; transition: transform 0.15s ease;
+  }
+  .btn:active { transform: scale(1.2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Beyblade X</h1>
+  <div class="scores">
+    <div class="scoreBox" id="scoreP1">Player 1: 0</div>
+    <div class="scoreBox" id="scoreP2">Player 2: 0</div>
+  </div>
+
+  <div id="canvasWrap">
+    <canvas id="battleCanvas" width="360" height="320"></canvas>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">Start Battle</button>
+    <button id="playAgainBtn">Play Again</button>
+    <button id="resetBtn">Reset</button>
+    <button id="muteBtn">Mute</button>
+  </div>
+
+  <div class="points" id="pointsControls">
+    <div class="p1-buttons">
+      <img src="spin.jpg" class="btn" data-player="1" data-points="1">
+      <img src="over.jpg" class="btn" data-player="1" data-points="2">
+      <img src="extreme.jpg" class="btn" data-player="1" data-points="3">
+    </div>
+    <div class="p2-buttons">
+      <img src="spin2.jpg" class="btn" data-player="2" data-points="1">
+      <img src="over2.jpg" class="btn" data-player="2" data-points="2">
+      <img src="extreme2.jpg" class="btn" data-player="2" data-points="3">
+    </div>
+  </div>
+</div>
+
+<!-- Áudio -->
+<audio id="ripSound" src="ripSound.mp3" preload="auto"></audio>
+<audio id="clashSound" src="clash.mp3" preload="auto"></audio>
+<audio id="openingMusic" src="beybladeop.mp3" preload="auto" loop></audio>
+
+<script>
+const canvas=document.getElementById('battleCanvas');
+const ctx=canvas.getContext('2d');
+const scoreP1El=document.getElementById('scoreP1');
+const scoreP2El=document.getElementById('scoreP2');
+const startBtn=document.getElementById('startBtn');
+const playAgainBtn=document.getElementById('playAgainBtn');
+const resetBtn=document.getElementById('resetBtn');
+const muteBtn=document.getElementById('muteBtn');
+const pointsControls=document.getElementById('pointsControls');
+
+const ripSound=document.getElementById('ripSound');
+const clashSound=document.getElementById('clashSound');
+const openingMusic=document.getElementById('openingMusic');
+
+let p1=0,p2=0;
+let isCounting=false;
+let countdown=["READY","SET","3","2","1","LET IT RIP!"];
+let cIndex=0,cStart=0,delay=1.1;
+let player1Name="Player 1";
+let player2Name="Player 2";
+let attackGif=null;
+
+function askNames(){
+  player1Name = prompt("Nome do Jogador 1:", player1Name || "Player 1");
+  player2Name = prompt("Nome do Jogador 2:", player2Name || "Player 2");
+  updateScores();
+}
+function updateScores(){
+  scoreP1El.textContent=`${player1Name}: ${p1}`;
+  scoreP2El.textContent=`${player2Name}: ${p2}`;
+}
+function startCountdown(){
+  isCounting=true;cIndex=0;cStart=performance.now()/1000;
+  openingMusic.pause();
+  ripSound.currentTime=0;
+  ripSound.play(); // toca antes do READY
+  removeAttackGif();
+}
+function triggerLaunchEffects(){
+  const gif=document.createElement("img");
+  gif.src="leitrip.gif";
+  gif.style.position="absolute";
+  gif.style.top="0";gif.style.left="0";
+  gif.style.width="100%";gif.style.height="100%";
+  gif.style.objectFit="contain";
+  document.getElementById("canvasWrap").appendChild(gif);
+  setTimeout(()=>{
+    gif.remove();
+    showAttackGif();
+  },3000);
+  pointsControls.style.display="flex";
+  openingMusic.currentTime=0;
+  openingMusic.play();
+}
+function showAttackGif(){
+  attackGif=document.createElement("img");
+  attackGif.src="beybladeattack.gif";
+  attackGif.style.position="absolute";
+  attackGif.style.top="0";attackGif.style.left="0";
+  attackGif.style.width="100%";attackGif.style.height="100%";
+  attackGif.style.objectFit="contain";
+  document.getElementById("canvasWrap").appendChild(attackGif);
+}
+function removeAttackGif(){
+  if(attackGif){ attackGif.remove(); attackGif=null; }
+}
+
+startBtn.onclick=()=>{if(!isCounting)startCountdown();}
+playAgainBtn.onclick=()=>{if(!isCounting)startCountdown();}
+resetBtn.onclick=()=>{
+  p1=0;p2=0;
+  pointsControls.style.display="none";
+  openingMusic.pause();
+  openingMusic.currentTime=0;
+  removeAttackGif();
+  askNames();
+}
+muteBtn.onclick=()=>{
+  if(openingMusic.muted){ openingMusic.muted=false; muteBtn.textContent="Mute"; }
+  else { openingMusic.muted=true; muteBtn.textContent="Unmute"; }
+}
+
+pointsControls.addEventListener("click",e=>{
+  if(e.target.classList.contains("btn")){
+    const pts=parseInt(e.target.dataset.points);
+    const player=parseInt(e.target.dataset.player);
+    if(player===1){p1+=pts;}else if(player===2){p2+=pts;}
+    updateScores();
+    clashSound.currentTime=0;
+    clashSound.play();
+    removeAttackGif();
+  }
+});
+
+function frame(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(isCounting){
+    const now=performance.now()/1000;
+    const elapsed=now-cStart;
+    const stage=Math.floor(elapsed/delay);
+    if(stage>=countdown.length){
+      isCounting=false;
+      triggerLaunchEffects();
+    }else{
+      if(stage!==cIndex){ cIndex=stage; }
+      ctx.font="48px Orbitron, Arial";
+      ctx.fillStyle="#FFD700";
+      ctx.textAlign="center";
+      ctx.textBaseline="middle";
+      ctx.fillText(countdown[stage],canvas.width/2,canvas.height/2);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+askNames();
+updateScores();
+frame();
+</script>
+</body>
+</html>
